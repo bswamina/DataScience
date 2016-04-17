@@ -1,0 +1,289 @@
+---
+## title: "Reproducible Research - Course Project 2"
+## author: Bhaskar
+output: 
+  html_document: 
+    keep_md: yes
+---
+<br/>
+
+## __Data Analysis of the Weather Events with most Impact on Population Health & Property__
+<br/>
+
+### __Synopsis__
+<br/>
+
+The basic goal of this analysis is to explore the NOAA `Storm` Database and answer some basic questions about the severe weather events that have the most impact on population health (fatalities and injuries) and property damage (including crop damage). Our analysis concludes that __TORNADO__ causes the most fatalities and injuries, __FLOOD__ causes the most property damage, and __DROUGHT__ causes the most crop damage.
+
+<br/>
+
+### __Data Processing__
+<br/>
+
+#### __1. Setup and Initialization__
+<br/>
+
+For this analysis, we will be using the R packages `R.utils`, `data.table`, `ggplot2`, and `gridExtra`. The following code segment loads the desired libraries:
+
+```{r setup_1, echo = TRUE, warning = FALSE, message = FALSE}
+library(R.utils)
+library(data.table)
+library(ggplot2)
+library(gridExtra)
+```
+
+We will define a function that will download the `Storm` dataset (compressed with bzip2) from a specified __url__ and uncompress it in the specified __dir__ location as a CSV __file__. The following code segment defines the function called __setup.dataset__ that takes the 3 arguments:
+
+```{r setup_2, echo = TRUE}
+setup.dataset <- function(url, dir, file) {
+    bz2 <- 'repdata-data-StormData.csv.bz2'
+    
+    cat('[INFO]: Ready to download from url:', url, '\n')
+    
+    ### Download
+    download.file(url,
+                  paste(dir, bz2, sep='/'),
+                  mode = 'wb',
+                  method = 'curl')
+    
+    cat('[INFO]: Ready to unzip file:', bz2, '\n')
+    
+    ### Unzip
+    if (file.exists(paste(dir, bz2, sep='/'))) {
+        bunzip2(paste(dir, bz2, sep='/'),
+                paste(dir, file, sep='/'),
+                remove = FALSE)
+    }
+    
+    cat('[INFO]: Download and setup completed\n')
+}
+```
+
+We initialize few variables that will be referenced during the download and setup of the dataset. The following code segment performs the desired initializations:
+
+```{r setup_3, echo = TRUE}
+url <- 'https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2'
+dir <- '~/Downloads/DATA'
+file <- 'repdata-data-StormData.csv'
+csv.file <- paste(dir, file, sep='/')
+```
+
+The following code segment will actually download, unzip and setup the Storm dataset:
+
+```{r setup_4, echo = TRUE}
+if (!file.exists(csv.file)) {
+    setup.dataset(url, dir, file)
+}
+
+if (!file.exists(csv.file) || file.info(csv.file)$size <= 0) {
+    stop(paste("ERROR: CSV file", csv.file, "not valid"))
+}
+```
+<br/>
+
+#### __2. Loading and Preprocessing the Data__
+<br/>
+
+We download the dataset and extract the file `r file` to the `r dir` directory. The following code loads the csv data into a `data.table` called __data__:
+
+```{r load_1, echo = TRUE}
+data <- fread(csv.file)
+dim(data)
+str(data)
+```
+
+From the `Storm` dataset, we can see the two numeric columns `FATALITIES` and `INJURIES` associated with each severe weather event (identified by the column `EVTYPE`). So, the question of which weather events have the most impact on the population health (fatalities and injuries) can be answered by using these 3 columns.
+
+Note that similar weather events could have happened many times across years. We need to create a minimalistic dataset that aggregates the `FATALITIES` by the `EVTYPE`. We need to do a similar aggregation for `INJURIES` by the `EVTYPE`.
+
+The following code segment creates a minimalistic `data.table` called __fatalities.data__ by subsetting rows from the `data.table` __data__ for which `FATALITIES` is greater than 0, aggregating the __sum__ of `FATALITIES` by the `EVTYPE` in the column `TOT.FATALITIES`, and sorting the rows in descending order of `TOT.FATALITIES`:
+
+```{r load_2, echo = TRUE}
+fatalities.data <- data[FATALITIES > 0,
+                        .(TOT.FATALITIES = sum(FATALITIES)),
+                        by = .(EVTYPE)][order(-TOT.FATALITIES)]
+dim(fatalities.data)
+str(fatalities.data)
+head(fatalities.data)
+tail(fatalities.data)
+fatalities.data[1:20]
+```
+
+By looking at the first 20 rows of the `data.table` called __fatalities.data__, we see that only the first 10 rows have significant values for the column `TOT.FATALITIES`. 
+
+The following code segment plots a bar graph of the total fatalities due to the different weather events from the first 10 rows of the `data.table` __fatalities.data__ we just created above and using the `ggplot` plotting system:
+
+```{r plot_1, echo = TRUE, fig.path = './figures/'}
+ggplot(data = fatalities.data[1:10],
+       aes(x = reorder(EVTYPE, TOT.FATALITIES),
+           y = TOT.FATALITIES, fill = EVTYPE)) +
+    geom_bar(stat = 'identity') +
+    labs(x = 'Event Type', y = 'Total Fatalities') +
+    ggtitle('Top 10 Fatalities by Event Type') +
+    theme_bw() +
+    theme(plot.title = element_text(face = 'bold', size = 10),
+          axis.title = element_text(face = 'bold', size = 10)) +
+    coord_flip()
+```
+
+<font color="red">__FACT - 1__</font>: From the above graph, it is clear that the weather event __TORNADO__ causes the most fatalities.
+
+The following code segment creates a minimalistic `data.table` called __injuries.data__ by subsetting rows from the `data.table` __data__ for which `INJURIES` is greater than 0, aggregating the __sum__ of `INJURIES` by the `EVTYPE` in the column `TOT.INJURIES`, and sorting the rows in descending order of `TOT.INJURIES`:
+
+```{r load_3, echo = TRUE}
+injuries.data <- data[INJURIES > 0,
+                      .(TOT.INJURIES = sum(INJURIES)),
+                      by = .(EVTYPE)][order(-TOT.INJURIES)]
+dim(injuries.data)
+str(injuries.data)
+head(injuries.data)
+tail(injuries.data)
+injuries.data[1:20]
+```
+
+By looking at the first 20 rows of the `data.table` called __injuries.data__, we see that only the first 5 rows have significant values for the column `TOT.INJURIES`. 
+
+The following code segment plots a bar graph of the total injuries due to the different weather events from the first 5 rows of the `data.table` __injuries.data__ we just created above and using the `ggplot` plotting system:
+
+```{r plot_2, echo = TRUE, fig.path = './figures/'}
+ggplot(data = injuries.data[1:5],
+       aes(x = reorder(EVTYPE, TOT.INJURIES),
+           y = TOT.INJURIES, fill = EVTYPE)) +
+    geom_bar(stat = 'identity') +
+    labs(x = 'Event Type', y = 'Total Injuries') +
+    ggtitle('Top 5 Injuries by Event Type') +
+    theme_bw() +
+    theme(plot.title = element_text(face = 'bold', size = 10),
+          axis.title = element_text(face = 'bold', size = 10)) +
+    coord_flip()
+```
+
+<font color="red">__FACT - 2__</font>: From the above graph, it is clear that the weather event __TORNADO__ causes the most injuries.
+
+From <font color="red">__FACT - 1__</font> and <font color="red">__FACT - 2__</font> above, it is clear that the weather event __TORNADO__ causes the most fatalities and injuries.
+
+Again, from the `Storm` dataset, we also see the two numeric columns `PROGDMG` (propety damage) and `CROPDMG` (crop damage) and two character columns `PROGDMGEXP` and `CROPDMGEXP` associated with each severe weather event (identified by the column `EVTYPE`). So, the question of which weather events have the most economic consequences (property damage and crop damage) can be answered by using these 5 columns.
+
+Before we can proceed, we need to make some data transformation. The columns `PROGDMGEXP` and `CROPDMGEXP` specify a character letter that indicates the property (or crop) damage in Thousands (denoted by 'K'), Millions (denoted by 'M'), or Billions (denoted by 'B'). We cannot just take the numeric values in the columns `PROGDMG` or `CROGDMG` - we need to transform them to represent the true value such as Thousands (multiply by 1000), Millions (multiply by 1000 * 1000), or Billions (multiply by 1000 * 1000 * 1000) and the columns `PROGDMGEXP` and `CROPDMGEXP` come to rescue here.
+
+The following code segment defines a vector called __exp.vec__ that contains the desired letters and the function called __std.exp__ that takes the 2 arguments (a value and a one-character letter - K, M, B):
+
+```{r setup_5, echo = TRUE}
+exp.vec <- c('k', 'K', 'm', 'M', 'b', 'B')
+
+std.exp <- function(val, exp) {
+    if (exp %in% c('k', 'K')) {
+        ### Thousand
+        return (val * 1000)
+    } else if (exp %in% c('m', 'M')) {
+        ### Million
+        return (val * 1000 * 1000)
+    } else if (exp %in% c('b', 'B')) {
+        ### Billion
+        return (val * 1000 * 1000 * 1000)
+    }
+}
+```
+
+The following code segment creates a temporary `data.table` called __propdmg.tmp__ by subsetting rows from the `data.table` __data__ for which `PROPDMG` is greater than 0 and `PROPDMGEXP` is in the vector __exp.vec__:
+
+```{r load_4, echo = TRUE}
+propdmg.tmp <- data[PROPDMG > 0 & PROPDMGEXP %in% exp.vec,
+                    .(PROPDMG, PROPDMGEXP, EVTYPE)]
+```
+
+The following code segment will add a new column called `PROPDMGAMT` to the `data.table` called __propdmg.tmp__ by invoking the function __std.exp__ on each row:
+
+```{r load_5, echo = TRUE}
+propdmg.tmp <- propdmg.tmp[, PROPDMGAMT := std.exp(PROPDMG, PROPDMGEXP),
+                           by = 1:nrow(propdmg.tmp)]
+```
+
+Remember that similar weather events could have happened many times across years. We need to create a minimalistic dataset that aggregates the `PROPDMGAMT` by the `EVTYPE`.
+
+The following code segment creates a minimalistic `data.table` called __propdmg.data__ by subsetting rows from the `data.table` __propdmg.tmp__, aggregating the __sum__ of `PROPDMGAMT` by the `EVTYPE` in the column `TOT.PROPDMGAMT`, and sorting the rows in descending order of `TOT.PROPDMGAMT`:
+
+```{r load_6, echo = TRUE}
+propdmg.data <- propdmg.tmp[,
+                            .(TOT.PROPDMGAMT = sum(PROPDMGAMT)),
+                            by = EVTYPE][order(-TOT.PROPDMGAMT)]
+rm(propdmg.tmp)
+dim(propdmg.data)
+str(propdmg.data)
+head(propdmg.data)
+tail(propdmg.data)
+```
+
+The following code segment creates a temporary `data.table` called __cropdmg.tmp__ by subsetting rows from the `data.table` __data__ for which `CROPDMG` is greater than 0 and `CROPDMGEXP` is in the vector __exp.vec__:
+
+```{r load_7, echo = TRUE}
+cropdmg.tmp <- data[CROPDMG > 0 & CROPDMGEXP %in% exp.vec,
+                    .(CROPDMG, CROPDMGEXP, EVTYPE)]
+```
+
+The following code segment will add a new column called `CROPDMGAMT` to the `data.table` called __cropdmg.tmp__ by invoking the function __std.exp__ on each row:
+
+```{r load_8, echo = TRUE}
+cropdmg.tmp <- cropdmg.tmp[, CROPDMGAMT := std.exp(CROPDMG, CROPDMGEXP),
+                           by = 1:nrow(cropdmg.tmp)]
+```
+
+Remember that similar weather events could have happened many times across years. We need to create a minimalistic dataset that aggregates the `CROPDMGAMT` by the `EVTYPE`.
+
+The following code segment creates a minimalistic `data.table` called __cropdmg.data__ by subsetting rows from the `data.table` __cropdmg.tmp__, aggregating the __sum__ of `CROPDMGAMT` by the `EVTYPE` in the column `TOT.CROPDMGAMT`, and sorting the rows in descending order of `TOT.CROPDMGAMT`:
+
+```{r load_9, echo = TRUE}
+cropdmg.data <- cropdmg.tmp[,
+                            .(TOT.CROPDMGAMT = sum(CROPDMGAMT)),
+                            by = EVTYPE][order(-TOT.CROPDMGAMT)]
+rm(cropdmg.tmp)
+dim(cropdmg.data)
+str(cropdmg.data)
+head(cropdmg.data)
+tail(cropdmg.data)
+```
+
+The following code segment creates two sub-plots : one for the total property damage due to the different weather events and the other for the total crop damage due to the different weather events from the first 10 rows of the `data.table`s __progdmg.data__ and __crogdmg.data__ respectively and plotting them using the `ggplot` plotting system:
+
+```{r plot_3, echo = TRUE, fig.path = './figures/', fig.width = 12}
+options(scipen = 10)
+
+p1 <- ggplot(data = propdmg.data[1:10],
+             aes(x = reorder(EVTYPE, TOT.PROPDMGAMT),
+                 y = TOT.PROPDMGAMT, fill = EVTYPE)) +
+             geom_bar(stat = 'identity') +
+             labs(x = 'Event Type', y = 'Total Property Damage') +
+             ggtitle('Top 10 Property Damages by Event Type') +
+             theme_bw() +
+             theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+             theme(plot.title = element_text(face = 'bold', size = 10),
+                   axis.title = element_text(face = 'bold', size = 10)) +
+             coord_flip()
+
+p2 <- ggplot(data = cropdmg.data[1:10],
+             aes(x = reorder(EVTYPE, TOT.CROPDMGAMT),
+                 y = TOT.CROPDMGAMT, fill = EVTYPE)) +
+    geom_bar(stat = 'identity') +
+    labs(x = 'Event Type', y = 'Total Crop Damage') +
+    ggtitle('Top 10 Crop Damages by Event Type') +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+    theme(plot.title = element_text(face = 'bold', size = 10),
+          axis.title = element_text(face = 'bold', size = 10)) +
+    coord_flip()
+
+grid.arrange(p1, p2, ncol = 2)
+```
+
+<font color="red">__FACT - 3__</font>: From the above graph, it is clear that the weather event __FLOOD__ causes the most property damage and the weather event __DROUGHT__ causes the most crop damage.
+
+<br/>
+
+### __Results__
+<br/>
+
+Looking at the facts <font color="red">__FACT - 1__</font>, <font color="red">__FACT - 2__</font>, and <font color="red">__FACT - 3__</font> from above, we can conclude the following: 
+
+* The weather event __TORNADO__ causes the most fatalities and injuries
+* The weather event __FLOOD__ causes the most property damage
+* The weather event __DROUGHT__ causes the most crop damage
