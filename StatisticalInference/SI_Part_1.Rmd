@@ -1,0 +1,170 @@
+---
+title: 'Statistical Inference Project - Part 1'
+author: 'Bhaskar S'
+date: '14th May 2016'
+output:
+  pdf_document: default
+  html_document:
+    keep_md: yes
+---
+<br/>
+
+## __Investigate the Exponential Distribution in R and Compare with Central Limit Theorem__
+<br/>
+
+### __Synopsis__
+<br/>
+
+In this project, we investigate the exponential distribution in R and compare it with the
+__Central Limit Theorem__. The exponential distribution can be simulated in R using the
+__rexp(n, lambda)__ function, where n is the size and lambda is the rate parameter. The
+mean of exponential distribution is __1/lambda__ and the standard deviation is also 
+__1/lambda__.
+
+<br/>
+
+### __Simulation Process__
+<br/>
+
+We initialize __lambda__ with the value `0.2` for all of the simulations. The sample size __n__ of the exponentials to investigate is `40`. The number of simulations will be `1000`.
+
+For this analysis, we will be using the R package `ggplot2` for plotting graphs. The following code segment loads the desired libraries:
+
+```{r setup_1, echo = TRUE}
+library(ggplot2)
+```
+
+We initialize few variables that will be referenced in this investigation. The following code segment performs the desired initializations:
+
+```{r setup_2, echo = TRUE}
+n <- 40
+lambda <- 0.2
+nosim <- 1000
+```
+
+The following code segment initializes the random number generator state for reproducible results:
+
+```{r setup_3, echo = TRUE}
+set.seed(1000)
+```
+
+The following code generates a sample exponential distribution using the R function `rexp` using the variables __n__ and __lambda__ and stores the result in the variable __sample__:
+
+```{r load_1, echo = TRUE}
+sample <- rexp(n, lambda)
+```
+
+The following code finds the sample `mean` and the sample `standard deviation` (square root of sample `variance`) for the generated __sample__ and stores the results in the variables __sample.mean__ and __sample.s__ respectively:
+
+```{r compute_1, echo = TRUE}
+sample.mean <- mean(sample)
+sample.s <- sd(sample)
+```
+
+The theoretical `mean` and the theoretical `standard deviation` (square root of theoretical `variance`) of an exponential distribution are the _same_ and is __1 / lambda__. The following code finds the theoretical `mean` and the theoretical `standard deviation` (square root of theoretical `variance`) and stores the results in the variables __theoretical.mean__ and __theoretical.sigma__ respectively:
+
+```{r compute_2, echo = TRUE}
+theoretical.mean <- 1 / lambda
+theoretical.sigma <- 1 / lambda
+```
+
+The following code plots the __sample__ exponential distribution as a _histogram_ and displays the theoretical `mean` (black vertical line) and the sample `mean` (blue vertical line):
+
+```{r plot_1, echo = TRUE, fig.path = './figures/'}
+ggplot(data.frame(data = sample), aes(x = data)) + 
+    labs(title = 'Theoretical Mean vs Sample Mean') +
+    labs(x = 'Sample Values', y = 'Frequency') +
+    geom_histogram(colour = 'blue', fill = 'light blue', binwidth = 0.5) +
+    scale_x_continuous(breaks=seq(0, 20, 1)) +
+    geom_vline(xintercept = theoretical.mean, color = 'black', size = 2) +
+    geom_vline(xintercept = sample.mean, color = 'blue', size = 2)
+```
+
+From the above plot, we see that the sample `mean` is close enough to the theoretical population `mean` but not an accurate estimator.
+
+The same is true for the `standard deviation` (square root of `variance`). The following code displays the sample and theoretical `standard deviation` (a measure of `variance`):
+
+```{r display_1, echo = TRUE}
+cat('Sample Standard Deviation (s):', sample.s)
+cat('Theoretical (population) Standard Deviation (sigma):', theoretical.sigma)
+```
+
+As we take more and more samples of the exponential distribution using simulation (creating what we call a __Sampling Distribution__), the `mean` as well as the variance (`standard deviation`) of the __Sampling Distribution__ more accurately estimate the theoretical population `mean` and variance (`standard deviation`). Also, the __Sampling Distribution__ looks more like a __Normal Distribution__. This is the essense of the __Central Limit Theorem__.
+
+We will now perform the `1000` simulations to generate the __sampling distribution__.
+
+The following code performs `1000` simulations to generate different exponential distribution samples and stores the result as a `1000 x 40` matrix in the variable __simulations__:
+
+```{r compute_3, echo = TRUE}
+simulations <- matrix(rexp(n * nosim, lambda), nosim)
+```
+
+The following code uses the R `apply` function on each of the `1000` exponential distribution samples (each row of the matrix) and computes the sample `mean` for each matrix row and stores the result in the variable __simulation.means__:
+
+```{r compute_4, echo = TRUE}
+simulation.means <- apply(simulations, 1, mean) ### 1 here indicates ROW
+```
+
+The `standard deviation` (sigma) of the population and the `standard deviation` (s) of the sampling distribution for a sample size (n) are related as follows:
+
+```
+s = sigma / sqrt(n)
+```
+
+From the above equation, to find the estimated population `standard deviation` (sigma) from the estimated sample `mean` (s), we use the following equation:
+
+```
+sigma = s * sqrt(n)
+```
+
+The following code computes the estimated sampling `mean` and the estimated sampling `standard deviation` (square root of sample `variance`) from the sampling distribution __simulations__ and stores the results in the variables __estimated.mean__ and __estimated.sigma__ respectively:
+
+```{r compute_5, echo = TRUE}
+estimated.mean <- mean(simulation.means)
+estimated.sigma <- sd(simulation.means) * sqrt(n)
+```
+
+The following code plots the means of the sampling distribution __simulation.means__ as a _histogram_ and displays the theoretical `mean` (black vertical line) and the estimated `mean` (red vertical line):
+
+```{r plot_2, echo = TRUE, fig.path = './figures/'}
+ggplot(data.frame(means = simulation.means), aes(x = means)) +
+    labs(title = 'Theoretical Mean vs Estimated Mean') +
+    labs(x = 'Means', y = 'Frequency') +
+    geom_histogram(colour = 'blue', fill = 'light blue', binwidth = 0.5) +
+    scale_x_continuous(breaks=seq(0, 10, 0.5)) +
+    geom_vline(xintercept = theoretical.mean, color = 'black', size = 3) +
+    geom_vline(xintercept = estimated.mean, color = 'red', size = 2)
+```
+
+From the above plot, we see that the estimated `mean` accurately estimates the theoretical population `mean`, validating the essence of the __Central Limit Theorem__.
+
+The same is true for the `standard deviation` (square root of `variance`). The following code displays the estimated and theoretical `standard deviation` (a measure of `variance`):
+
+```{r display_2, echo = TRUE}
+cat('Estimated Standard Deviation (sigma):', estimated.sigma)
+cat('Theoretical (population) Standard Deviation (sigma):', theoretical.sigma)
+```
+
+Now, let us plot the __Sampling Distribution__ to show that it looks more like a __Normal Distribution__.
+
+The following code plots the means of the sampling distribution __simulation.means__ as a _histogram_ and overlays a density curve:
+
+```{r plot_3, echo = TRUE, fig.path = './figures/'}
+ggplot(data.frame(means = simulation.means), aes(x = means)) + 
+    labs(title = 'Simulated Mean Distribution') +
+    labs(x = 'Means', y = 'Frequency') +
+    geom_histogram(aes(y = ..density..), colour = 'blue',
+                   fill = 'light blue', binwidth = 0.2) +
+    geom_density(color = 'brown', size = 1) +
+    geom_vline(xintercept = estimated.mean, color = 'black', size = 2)
+```
+<br/>
+
+### __Summary__
+<br/>
+
+According to the __Central Limit Theorem__, a __Sampling Distribution__ that is created through a large number of simulations of exponential distribution samples, has the following properties:
+
+* The `mean` of the __Sampling Distribution__ accurately estimates the population `mean`
+* The `variance` of the __Sampling Distribution__ accurately estimates the population `variance`
+* Plotting a __Sampling Distribution__ follows a __Normal Distribution__ curve

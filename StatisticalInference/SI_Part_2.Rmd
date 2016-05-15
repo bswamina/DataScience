@@ -1,0 +1,178 @@
+---
+title: 'Statistical Inference Project - Part 2'
+author: 'Bhaskar S'
+date: '14th May 2016'
+output:
+  pdf_document: default
+  html_document:
+    keep_md: yes
+---
+<br/>
+
+## __Analysis of the ToothGrowth dataset in R__
+<br/>
+
+### __Synopsis__
+<br/>
+
+In this project, we analyze the __ToothGrowth__ dataset in R to perform basic Exploratory Data Analysis and Hypothesis Tests to compare the tooth growth by supplements and dosage.
+
+<br/>
+
+### __Exploratory Data Analysis__
+<br/>
+
+The __ToothGrowth__ dataset in R contains the length of odontoblasts (cells responsible for tooth growth) in 60 guinea pigs. Each animal received one of three dose levels of vitamin C (0.5, 1, and 2 mg/day) by one of two delivery methods, (orange juice or ascorbic acid (a form of vitamin C and coded as VC).
+
+For this analysis, we will be using the R packages `data.table` and `ggplot2`. The following code segment loads the desired libraries:
+
+```{r setup_1, echo = TRUE}
+library(data.table)
+library(ggplot2)
+```
+
+The following code segment loads the __ToothGrowth__ dataset that is built into R. This automatically creates a data frame called `ToothGrowth`:
+
+```{r load_1, echo = TRUE}
+data('ToothGrowth')
+```
+
+We initialize a `data.table` variable called __TG__ that will be referenced in this analysis. We use a `data.table` instead of the built-in data frame `ToothGrowth` for ease of use. Also, the `dose` data column is converted to a factor variable. Finally, we remove the data frame `ToothGrowth` once we initialize our `data.table` called __TG__ for efficiency. The following code segment performs the desired initializations:
+
+```{r setup_2, echo = TRUE}
+ToothGrowth$dose <- as.factor(ToothGrowth$dose)
+TG <- data.table(ToothGrowth)
+rm(ToothGrowth)
+```
+
+As a first step in the exploratory data analysis, we want to compactly display the structure and contents of our `data.table` called __TG__. The following code displays the structure and contents of the `data.table` called __TG__ using the R `str` function:
+
+```{r display_1, echo = TRUE}
+str(TG)
+```
+
+As we can see, the `data.table` called __TG__ has __60__ rows and __3__ columns (`len`, `supp`, `dose`). The columns `supp` and `dose` are factor variables and represent the _supplement_ and _dosage_ respectively.
+
+The next step in the exploratory data analysis is to display the data in the `data.table` called __TG__ for visual analysis. We display the data in three sub-plots by `dose` with the `supp` along the x-axis and the `len` along the y-axis.
+
+The following code plots the `data.table` called __TG__ as a _boxplot_:
+
+```{r plot_4, echo = TRUE, fig.path = './figures/'}
+ggplot(TG, aes(x = supp, y = len, fill = supp)) +
+    geom_boxplot(aes(fill = supp)) +
+    labs(x = 'Supplement', y = 'Length') +
+    ggtitle('Supplement vs Length by Dosage') +
+    facet_grid(~dose) +
+    theme_bw() +
+    theme(plot.title = element_text(face = 'bold', size = 10),
+          axis.title = element_text(face = 'bold', size = 10))
+```
+
+From the above plot, we can infer the following facts:
+
+* For `dose` __0.5__ and __1__, the _supplement_ __OJ__ seems to have a better growth result than the _supplement_ __VC__
+* For `dose` __2__, however, the _supplement_ __VC__ seems to have a better growth result than the _supplement_ __OJ__
+
+The next step in the exploratory data analysis is to display the `summary` statistics for the `len` data column in the `data.table` called __TG__.
+
+For this, we initialize __6__ subsets of the `data.table` called __TG__ using the data columns `supp` and `dose`. The following code segment performs the desired initializations:
+
+```{r setup_3, echo = TRUE}
+TG1.OJ <- TG[supp == 'OJ' & dose == 0.5]
+TG1.VC <- TG[supp == 'VC' & dose == 0.5]
+TG2.OJ <- TG[supp == 'OJ' & dose == 1]
+TG2.VC <- TG[supp == 'VC' & dose == 1]
+TG3.OJ <- TG[supp == 'OJ' & dose == 2]
+TG3.VC <- TG[supp == 'VC' & dose == 2]
+```
+
+The following code displays the the `summary` statistics for the `len` data column from each of the __6__ subsets we created above:
+
+```{r display_2, echo = TRUE}
+summary(TG1.OJ$len)
+summary(TG1.VC$len)
+summary(TG2.OJ$len)
+summary(TG2.VC$len)
+summary(TG3.OJ$len)
+summary(TG3.VC$len)
+```
+
+From the above `summary` statistics, we can infer the following facts:
+
+* For `dose` __0.5__ and __1__, the _supplement_ __OJ__ seems to have a better growth result than the _supplement_ __VC__
+* For `dose` __2__, however, there does not seem to be any major advantage between _supplement_ __OJ__ or _supplement_ __VC__
+<br/>
+
+### __Hypothesis Testing__
+<br/>
+
+#### __Hypothesis Testing on Supplement Types__
+<br/>
+
+Looking at the data, we have two supplement types (OJ and VC) and the sample size is equal to __30__. Also, we do not have any knowledge of the population variance. As a result, we will be conducting a __t__ hypothesis test to find the __p-value__ using the R `t.test` function.
+
+We will test the _null_ hypothesis that the mean tooth growth is equal between the supplements __OJ__ and __VC__ with a 95% __Confidence Interval__. Statistically, we are testing for __H0: mu1 = mu2__. The _alternate_ hypothesis is __Ha: mu1 != mu2__. Since the _null_ hypothesis is testing for equality, this is a __two-tail__ test. If the __p-value__ is < 0.05, we reject the _null_ hypothesis.
+
+For this, we initialize __2__ subsets of the `data.table` called __TG__ using the data column `supp`. The following code segment performs the desired initializations:
+
+```{r setup_4, echo = TRUE}
+TG.OJ <- TG[supp == 'OJ']
+TG.VC <- TG[supp == 'VC']
+```
+
+The following code performs a two-tailed __t__ hypothesis test:
+
+```{r compute_1, echo = TRUE}
+t.test(len ~ supp, data = TG, var.equal = FALSE, paired = FALSE, conf.level = 0.95)
+```
+
+From the above, we see the __p-value__ is greater than __0.05__ and hence we fail to reject the _null_ hypothesis and conclude with 95% confidence level that there is no major difference between the mean growths from the two supplements __OJ__ and __VC__.
+<br/>
+
+#### __Hypothesis Testing on Dosage Levels__
+<br/>
+
+Looking at the data, we have three dosage levels (0.5, 1, 2) and the sample size is equal to __20__ for each level. Also, we do not have any knowledge of the population variance. As a result, we will be conducting a __t__ hypothesis test to find the __p-value__ using the R `t.test` function.
+
+We will test the _null_ hypothesis for each of the dosage levels that the mean tooth growth is equal between the supplements __OJ__ and __VC__ with a 95% __Confidence Interval__. Statistically, we are testing for __H0: mu1 = mu2__. The _alternate_ hypothesis is __Ha: mu1 != mu2__. Since the _null_ hypothesis is testing for equality, this is a __two-tail__ test. If the __p-value__ is < 0.05, we reject the _null_ hypothesis.
+
+For this, we initialize __3__ subsets of the `data.table` called __TG__ using the data column `dose`. The following code segment performs the desired initializations:
+
+```{r setup_5, echo = TRUE}
+TG1 <- TG[dose == as.factor(0.5)]
+TG2 <- TG[dose == as.factor(1)]
+TG3 <- TG[dose == as.factor(2)]
+```
+
+The following code performs a two-tailed __t__ hypothesis test for dosage level __0.5__:
+
+```{r compute_2, echo = TRUE}
+t.test(len ~ supp, data = TG1, var.equal = FALSE, paired = FALSE, conf.level = 0.95)
+```
+
+From the above, we see the __p-value__ of __0.006359__ is less than __0.05__ and hence we reject the _null_ hypothesis and conclude with 95% confidence level that there is difference between the mean growths from the two supplements __OJ__ and __VC__ for dosage __0.5__.
+
+The following code performs a two-tailed __t__ hypothesis test for dosage level __1__:
+
+```{r compute_3, echo = TRUE}
+t.test(len ~ supp, data = TG2, var.equal = FALSE, paired = FALSE, conf.level = 0.95)
+```
+
+From the above, we see the __p-value__ of __0.001038__ is less than __0.05__ and hence we reject the _null_ hypothesis and conclude with 95% confidence level that there is difference between the mean growths from the two supplements __OJ__ and __VC__ for dosage __1__.
+
+Finally, the following code performs a two-tailed __t__ hypothesis test for dosage level __2__:
+
+```{r compute_4, echo = TRUE}
+t.test(len ~ supp, data = TG3, var.equal = FALSE, paired = FALSE, conf.level = 0.95)
+```
+
+From the above, we see the __p-value__ of __0.9639__ is greater than __0.05__ and hence we fail to reject the _null_ hypothesis and conclude with 95% confidence level that there is no difference between the mean growths from the two supplements __OJ__ and __VC__ for dosage __2__.
+<br/>
+
+### __Summary__
+<br/>
+
+We conclude the following facts from our analysis:
+
+* The supplements on their own do not seem to have an influence on the tooth growth
+* The dosage levels seems to have an influence on the tooth growth
