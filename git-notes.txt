@@ -6,4 +6,11 @@ cd to the local ExData_Plotting1 directory, do the following:
 
 git remote add upstream https://github.com/bswamina/ExData_Plotting1.git
 
+### First time init and setup local mirror
+
+git init
+
+git remote add origin https://github.com/bswamina/DataScience.git
+
+git pull origin master
 
