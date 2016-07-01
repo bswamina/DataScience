@@ -1,0 +1,9 @@
+After fork in github,
+
+git clone https://github.com/bswamina/ExData_Plotting1.git to make a local copy
+
+cd to the local ExData_Plotting1 directory, do the following:
+
+git remote add upstream https://github.com/bswamina/ExData_Plotting1.git
+
+

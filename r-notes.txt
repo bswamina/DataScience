@@ -1,0 +1,13 @@
+# Check for a file
+
+if (!file.exists(<file>)) { probably flag error }
+
+# Download a dataset
+
+download.file(<url-to-file>, destfile = <dest-path>)
+download.file(<top-url>, <source-zip-file>, <target-zip-file>)
+
+# Unzip if zipped
+
+unzip(<zip-file>, exdir = <dest-path>)
+
